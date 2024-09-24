@@ -4,7 +4,7 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 
 import { users } from "@/lib/db/schema";
-import { protectedProcedure } from "@/lib/actions";
+import { ActionError, protectedProcedure } from "@/lib/actions";
 
 export const getMe = protectedProcedure.action(async ({ ctx }) => {
   const user = await ctx.db.query.users.findFirst({
@@ -13,20 +13,20 @@ export const getMe = protectedProcedure.action(async ({ ctx }) => {
   });
 
   if (!user) {
-    throw new Error("User not found");
+    throw new ActionError({ message: "User not found", code: 400 });
   }
 
   return user;
 });
 
-export const updateMe = protectedProcedure.input(z.object({ username: z.string() })).action(async ({ ctx, input: { username } }) => {
+export const updateMe = protectedProcedure.input(z.object({ username: z.string().min(3) })).action(async ({ ctx, input: { username } }) => {
 
   const [user] = await ctx.db.update(users).set({
     username,
   }).where(eq(users.id, ctx.session.user.id)).returning();
 
   if (!user || user.username !== username) {
-    throw new Error("User not updated!");
+    throw new ActionError({ message: "User not updated!", code: 400 });
   }
 
   return true;

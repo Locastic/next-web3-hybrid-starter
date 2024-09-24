@@ -24,7 +24,7 @@ const DashboardGeneralPage = () => {
           <Label htmlFor="username">Username</Label>
           <Input id="username" name="username" defaultValue={user?.username || ''} className="w-full" required />
           <Button type="submit" className="mt-2" disabled={isPending}>Save</Button>
-          {state.error && <small className="text-destructive">{state.error.message}</small>}
+          {state.error && <small className="text-destructive">{state.error}</small>}
         </form>
       </div>
     </>

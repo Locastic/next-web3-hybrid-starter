@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { generateNonce, SiweMessage } from "siwe";
 
-import { publicProcedure } from "@/lib/actions";
+import { ActionError, publicProcedure } from "@/lib/actions";
 import { deleteSession, getSecureSession, setSession } from "@/lib/auth/session";
 import { users } from "@/lib/db/schema";
 import { redirect } from "next/navigation";
@@ -26,7 +26,7 @@ export const register = publicProcedure
     const session = await getSecureSession();
 
     if (!session || !session.walletAddress || !session.chainId) {
-      throw new Error("No registration session");
+      throw new ActionError({ message: "No registration session", code: 400 });
     }
 
     const userWithWallet = await ctx.db.query.users.findFirst({
@@ -34,7 +34,7 @@ export const register = publicProcedure
     });
 
     if (userWithWallet) {
-      throw new Error("User already exists with this exact wallet/chain combination");
+      throw new ActionError({ message: "No registration session", code: 400 });
     }
 
     const userWithUsername = await ctx.db.query.users.findFirst({
@@ -42,7 +42,7 @@ export const register = publicProcedure
     });
 
     if (userWithUsername) {
-      throw new Error("Username already exists");
+      throw new ActionError({ message: "Username already exists", code: 400 });
     }
 
     const [user] = await ctx.db.insert(users).values({
@@ -55,7 +55,7 @@ export const register = publicProcedure
 
 
     if (!user) {
-      throw new Error("Failed to create user");
+      throw new ActionError({ message: "Failed to create user", code: 400 });
     }
 
     setSession(user);
@@ -78,7 +78,7 @@ export const login = publicProcedure
     const { data: fields } = await siweMessage.verify({ signature });
 
     if (fields.nonce !== session.nonce) {
-      throw new Error("Invalid nonce");
+      throw new ActionError({ message: "Invalid nonce", code: 400 });
     }
 
     const userWithWallet = await ctx.db.query.users.findFirst({

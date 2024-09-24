@@ -9,7 +9,7 @@ import { useFormActionState } from "@/lib/hooks";
 
 const DashboardSecurityPage = () => {
   const { disconnect } = useDisconnect();
-  const [state, formAction, isPending] = useFormActionState(deleteMe);
+  const [_state, formAction, isPending] = useFormActionState(deleteMe);
 
   return (
     <>

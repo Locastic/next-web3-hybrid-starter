@@ -1,103 +1,170 @@
 import { cookies } from "next/headers";
+import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
 import { sessionCookieName } from "@/lib/constants";
 import { type SessionData, verifyToken } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 
-// TODO: simplify procedure creation: use middlewares?
-// TODO: add zod runtime validation
-
-type PublicActionContext = {
+type PublicContext = {
   db: typeof db;
   session: SessionData | null
 };
 
-type ProtectedActionContext = {
+type ProtectedContext = {
   db: typeof db;
   session: SessionData
 };
 
-async function getSession() {
-  try {
-    const sessionCookie = cookies().get(sessionCookieName);
+type ActionResult<R> = { data: R, error?: never } | { data?: never, error: string };
 
-    if (!sessionCookie || !sessionCookie.value) {
-      throw new Error("No session");
-    }
+type Procedure<C> = () => {
+  input: <T extends z.ZodRawShape>(schema: z.ZodObject<T>) => {
+    action: <U>(fn: (args: { ctx: C, input: z.infer<typeof schema> }) => Promise<U>) => (input: z.infer<typeof schema>) => Promise<ActionResult<U>>
+  };
+  action: <U>(fn: (args: { ctx: C }) => Promise<U>) => () => Promise<ActionResult<U>>
+};
 
-    const sessionData = await verifyToken(sessionCookie.value);
+export class ActionError extends Error {
+  public readonly code;
+  public readonly cause?: unknown;
 
-    if (!sessionData || !sessionData.user || typeof sessionData.user.id !== "number") {
-      throw new Error("Invalid session");
-    }
+  constructor({ message, code, cause }: { message?: string, code: number, cause?: unknown }) {
+    super(message, { cause });
 
-    if (new Date(sessionData.expires) < new Date()) {
-      throw new Error("Session expired");
-    }
+    this.code = code;
+    this.cause = cause;
+    this.name = 'ActionError';
 
-    return sessionData;
-  } catch (error) {
-    console.error(error);
-    return null;
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 }
 
-function createPublicProcedure() {
-  return {
-    input: <T extends z.ZodRawShape>(schema: z.ZodObject<T>) => ({
-      action: <U>(fn: (args: { ctx: PublicActionContext, input: z.infer<typeof schema> }) => Promise<U>) => {
-        return async (input: z.infer<typeof schema>) => {
-          const session = await getSession();
+async function getSession() {
+  const sessionCookie = cookies().get(sessionCookieName);
 
-          return await fn({ ctx: { db, session }, input });
-        }
-      },
-      // TODO: fix prevState type
-      formAction: <U>(fn: (args: { ctx: PublicActionContext, prevState: any, input: z.infer<typeof schema> }) => Promise<U>) => {
-        return async (prevState: U, input: FormData) => {
-          const session = await getSession();
+  if (!sessionCookie || !sessionCookie.value) {
+    console.error("No session");
+    return null;
+  }
 
-          // TODO: fix input type
-          return (await fn({ ctx: { db, session }, prevState, input: Object.fromEntries(input) as z.infer<typeof schema> }));
-        }
-      },
-    }),
-    action: <U>(fn: ({ ctx }: { ctx: PublicActionContext }) => Promise<U>) => {
-      return async () => {
-        const session = await getSession();
+  const sessionData = await verifyToken(sessionCookie.value);
 
-        return await fn({ ctx: { db, session } });
-      }
-    },
-  };
+  if (!sessionData || !sessionData.user || typeof sessionData.user.id !== "number") {
+    console.error("Invalid session");
+    return null;
+  }
+
+  if (new Date(sessionData.expires) < new Date()) {
+    console.error("Session expired");
+    return null;
+  }
+
+  return sessionData;
 }
 
-function createProtectedProcedure() {
+const createPublicProcedure: Procedure<PublicContext> = function () {
   return {
-    input: <T extends z.ZodRawShape>(schema: z.ZodObject<T>) => ({
-      action: <U>(fn: (args: { ctx: ProtectedActionContext, input: z.infer<typeof schema> }) => Promise<U>) => {
-        return async (input: z.infer<typeof schema>) => {
+    input: (schema) => ({
+      action: (fn) => {
+        return async (input) => {
           const session = await getSession();
-          if (!session) {
-            console.error("No session");
-            return undefined;
-          }
 
-          return await fn({ ctx: { db, session }, input });
+          const result = schema.safeParse(input);
+
+          try {
+            if (!result.success) {
+              throw new ActionError({ message: result.error.errors[0].message, code: 400 });
+            }
+
+            const res = await fn({ ctx: { db, session }, input });
+
+            return { data: res };
+          } catch (error) {
+            unstable_rethrow(error);
+            if (error instanceof ActionError) {
+              console.error(error);
+              return { error: error.message };
+            }
+
+            return { error: "Internal server error" };
+          }
         }
-      },
+      }
     }),
-    action: <U>(fn: ({ ctx }: { ctx: ProtectedActionContext }) => Promise<U>) => {
+    action: (fn) => {
       return async () => {
         const session = await getSession();
 
-        if (!session) {
-          console.error("No session");
-          return undefined;
-        }
+        try {
+          const res = await fn({ ctx: { db, session } });
+          return { data: res };
+        } catch (error) {
+          unstable_rethrow(error);
+          if (error instanceof ActionError) {
+            console.error(error);
+            return { error: error.message };
+          }
 
-        return await fn({ ctx: { db, session } });
+          return { error: "Internal server error" };
+        }
+      }
+    },
+  }
+}
+
+const createProtectedProcedure: Procedure<ProtectedContext> = function () {
+  return {
+    input: (schema) => ({
+      action: (fn) => {
+        return async (input) => {
+          const session = await getSession();
+          try {
+            if (!session) {
+              throw new ActionError({ message: "No session", code: 400 });
+            }
+
+            const result = schema.safeParse(input);
+
+            if (!result.success) {
+              throw new ActionError({ message: result.error.errors[0].message, code: 400 });
+            }
+
+            const res = await fn({ ctx: { db, session }, input });
+
+            return { data: res };
+          } catch (error) {
+            unstable_rethrow(error);
+            if (error instanceof ActionError) {
+              console.error(error);
+              return { error: error.message };
+            }
+
+            return { error: "Internal server error" };
+          }
+        };
+      }
+    }),
+    action: (fn) => {
+      return async () => {
+        const session = await getSession();
+        try {
+          if (!session) {
+            throw new ActionError({ message: "No session", code: 400 });
+          }
+
+          const res = await fn({ ctx: { db, session } });
+
+          return { data: res };
+        } catch (error) {
+          unstable_rethrow(error);
+          if (error instanceof ActionError) {
+            console.error(error);
+            return { error: error.message };
+          }
+
+          return { error: "Internal server error" };
+        }
       }
     },
   };

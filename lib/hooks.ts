@@ -1,23 +1,24 @@
 import { useActionState } from "react";
 
-export function useFormActionState<T, U>(action: (input: T) => Promise<U>, onSuccess?: () => void) {
-  // type State = { data: Awaited<U>, error: never } | { data: never, error: unknown };
+// TODO: make type more strict
+type ActionResult<R> = { data?: R | null, error?: string | null };
 
+export function useFormActionState<T, U>(action: (input: T) => Promise<ActionResult<U>>, onSuccess?: () => void) {
   const [state, formAction, isPending] = useActionState(
     // TODO: add State type
     async (currentState: any, formData: FormData) => {
-      try {
-        // TODO: add schema parse check
-        const res = await action(Object.fromEntries(formData) as T);
+      let res = await action(Object.fromEntries(formData) as T);
 
-        onSuccess?.();
-
-        return { data: res, error: null };
-        // TODO: remove @ts-ignore
-        // @ts-ignore
-      } catch (error: Error) {
-        return { data: null, error: error };
+      // TODO: need to investigate why this is happening: probably because of the redirect?
+      if (res === undefined) {
+        res = { data: null, error: null };
       }
+
+      if (!res.error) {
+        onSuccess?.();
+      }
+
+      return res;
     }, { data: null, error: null }
   );
 

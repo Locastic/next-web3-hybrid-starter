@@ -4,6 +4,8 @@ import { createContext, use, useContext, useEffect, useState } from "react";
 
 import type { User } from "@/lib/db/schema";
 
+type UserPromise = Promise<{ data: User | null | undefined, error?: never } | { data?: never, error: string }>;
+
 type UserContextType = {
   user: User | null | undefined,
   setUser: (user: User | null | undefined) => void,
@@ -21,9 +23,9 @@ export const useUser = (): UserContextType => {
   return context;
 };
 
-const AuthProvider = ({ children, userPromise }: { children: React.ReactNode, userPromise: Promise<User | null | undefined> }) => {
-  const initialUser = use(userPromise);
-  const [user, setUser] = useState<User | null | undefined>(initialUser);
+const AuthProvider = ({ children, userPromise }: { children: React.ReactNode, userPromise: UserPromise }) => {
+  const { data: initialUser, error } = use(userPromise);
+  const [user, setUser] = useState<User | null | undefined>(!error ? initialUser : undefined);
 
   useEffect(() => {
     setUser(initialUser);

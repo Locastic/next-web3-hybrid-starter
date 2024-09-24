@@ -65,7 +65,7 @@ const RegistrationModal = ({
   const [state, formAction, isPending] = useFormActionState(register);
 
   useEffect(() => {
-    if (state) {
+    if (!state.error) {
       handleOpenChange(false);
     }
   }, [state]);

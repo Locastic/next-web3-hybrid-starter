@@ -18,9 +18,14 @@ const Web3Provider = ({ children }: { children: React.ReactNode }) => {
 
   const adapter = createAuthenticationAdapter({
     getNonce: async () => {
-      const data = await nonce();
+      const { data, error } = await nonce();
 
-      return data.nonce;
+      if (error) {
+        throw Error(error)
+      }
+
+      // TODO: make xoring data and error work
+      return data!.nonce;
     },
     createMessage: ({ nonce, address, chainId }) => {
       return new SiweMessage({
@@ -37,12 +42,18 @@ const Web3Provider = ({ children }: { children: React.ReactNode }) => {
       return message.prepareMessage();
     },
     verify: async ({ message, signature }) => {
-      const data = await login({
+      // TODO: fix issue with redirects blocking return
+      const { data, error } = await login({
         message: JSON.stringify(message),
         signature,
       });
 
-      if (data?.new) {
+      if (error) {
+        return false;
+      }
+
+      // TODO: make xoring data and error work
+      if (data!.new) {
         setUser(null);
         return true;
       }
