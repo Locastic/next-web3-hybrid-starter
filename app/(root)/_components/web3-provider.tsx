@@ -1,22 +1,36 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import { RainbowKitAuthenticationProvider, RainbowKitProvider, createAuthenticationAdapter } from "@rainbow-me/rainbowkit";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { AuthenticationStatus, RainbowKitAuthenticationProvider, RainbowKitProvider, createAuthenticationAdapter } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WagmiProvider } from "wagmi";
+import { useAccount, WagmiProvider } from "wagmi";
 import { SiweMessage } from "siwe";
 
 import config from "@/lib/web3/config";
 import { nonce, login, logout, verify } from "@/lib/actions/auth";
 import { useUser } from "@/lib/hooks";
 
-const Web3Provider = ({ children }: { children: React.ReactNode }) => {
+const RainbowKitProviderWrapper = ({ children }: { children: React.ReactNode }) => {
+  const router = useRouter();
+  const wagmiStatus = useRef("");
+  const { status } = useAccount();
   const { user, setUser } = useUser();
-  const [authType, setAuthType] = useState<"none" | "signup" | "signin">("none");
+  const [authStatus, setAuthStatus] = useState<AuthenticationStatus>("unauthenticated");
 
-  const status = user !== undefined ? "authenticated" : "unauthenticated";
+  useEffect(() => { wagmiStatus.current = status }, [status]);
 
-  const [queryClient] = useState(() => new QueryClient());
+  const [loginAction] = useState(() => async () => {
+    setAuthStatus("loading");
+    await login();
+
+    router.refresh();
+  });
+
+  useEffect(() => {
+    setAuthStatus(user !== undefined ? "authenticated" : "unauthenticated");
+  }, [user]);
+
   const [adapter] = useState(() => createAuthenticationAdapter({
     getNonce: async () => {
       const { data, error } = await nonce();
@@ -43,7 +57,6 @@ const Web3Provider = ({ children }: { children: React.ReactNode }) => {
       return message.prepareMessage();
     },
     verify: async ({ message, signature }) => {
-      // TODO: fix issue with redirects blocking return
       const { data, error } = await verify({
         message: JSON.stringify(message),
         signature,
@@ -54,42 +67,49 @@ const Web3Provider = ({ children }: { children: React.ReactNode }) => {
         return false;
       }
 
+      // NOTE: workaround: issue with RainbowKit allowing closing SignIn Modal while verification
+      // is still pending, checking before proceeding with verification if the wallet is disconnected
+      if (wagmiStatus.current === "disconnected") {
+        console.error("Verification succeeded but Modal closed! Wallet disconnected!");
+        return false;
+      }
+
       // TODO: make xoring data and error work
-      setAuthType(data!.type || "node");
+      if (data!.type === "signup") {
+        setUser(null);
+      } else {
+        loginAction();
+      }
 
       return true;
     },
     signOut: async () => {
       await logout();
 
-      setAuthType("none");
+      setUser(undefined);
+
+      router.refresh();
     },
   }));
 
-  useEffect(() => {
-    switch (authType) {
-      case "none":
-        setUser(undefined);
-        break;
-      case "signup":
-        setUser(null);
-        break;
-      case "signin":
-        login();
-        break;
-      default:
-        break;
-    }
-  }, [authType]);
+  return (
+    <RainbowKitAuthenticationProvider status={authStatus} adapter={adapter}>
+      <RainbowKitProvider modalSize="compact">
+        {children}
+      </RainbowKitProvider>
+    </RainbowKitAuthenticationProvider>
+  );
+};
+
+const Web3Provider = ({ children }: { children: React.ReactNode }) => {
+  const [queryClient] = useState(() => new QueryClient());
 
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitAuthenticationProvider status={status} adapter={adapter}>
-          <RainbowKitProvider modalSize="compact">
-            {children}
-          </RainbowKitProvider>
-        </RainbowKitAuthenticationProvider>
+        <RainbowKitProviderWrapper>
+          {children}
+        </RainbowKitProviderWrapper>
       </QueryClientProvider>
     </WagmiProvider>
   );

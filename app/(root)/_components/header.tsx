@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { GlobeIcon, Home, LogOut } from "lucide-react";
-import { useDisconnect } from "wagmi";
+import { useAccount, useConnections, useDisconnect } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import "@rainbow-me/rainbowkit/styles.css";
 
@@ -113,6 +113,7 @@ const Header = () => {
 
   const { openConnectModal } = useConnectModal();
   const { disconnect } = useDisconnect();
+  const { status } = useAccount();
 
   const { user, setUser } = useUser();
 
@@ -173,7 +174,7 @@ const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button variant="outline" onClick={openConnectModal}>
+            <Button variant="outline" onClick={openConnectModal} disabled={status === "connected"}>
               Connect Wallet
             </Button>
           )}

@@ -2,7 +2,6 @@
 
 import { z } from "zod";
 import { generateNonce, SiweMessage } from "siwe";
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { ActionError, publicProcedure } from "@/lib/actions";
@@ -118,6 +117,4 @@ export const login = publicProcedure
 
 export const logout = publicProcedure.action(async () => {
   deleteSession();
-
-  redirect("/");
 });
