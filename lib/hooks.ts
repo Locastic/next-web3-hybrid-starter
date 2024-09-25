@@ -1,4 +1,6 @@
-import { useActionState } from "react";
+import { useActionState, useContext } from "react";
+
+import { UserContext } from "./contexts";
 
 // TODO: make type more strict
 type ActionResult<R> = { data?: R | null, error?: string | null };
@@ -24,3 +26,13 @@ export function useFormActionState<T, U>(action: (input: T) => Promise<ActionRes
 
   return [state, formAction, isPending] as const;
 }
+
+export function useUser() {
+  const context = useContext(UserContext);
+
+  if (context === null) {
+    throw new Error("useUser must be used within a UserProvider");
+  }
+
+  return context;
+};

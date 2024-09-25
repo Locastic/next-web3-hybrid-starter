@@ -2,19 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { GlobeIcon, Home, LogOut, EthernetPort } from "lucide-react";
+import { GlobeIcon, Home, LogOut } from "lucide-react";
 import { useDisconnect } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import "@rainbow-me/rainbowkit/styles.css";
 
 import { cn, getChainName, shortenAddress } from "@/lib/utils";
+import { useUser, useFormActionState } from "@/lib/hooks";
 import { register } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useUser } from "./auth-provider";
-import { useFormActionState } from "@/lib/hooks";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 function stringToColour(input: string) {

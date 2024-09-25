@@ -2,11 +2,12 @@
 
 import { z } from "zod";
 import { generateNonce, SiweMessage } from "siwe";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { ActionError, publicProcedure } from "@/lib/actions";
 import { deleteSession, getSecureSession, setSession } from "@/lib/auth/session";
 import { users } from "@/lib/db/schema";
-import { redirect } from "next/navigation";
 
 export const nonce = publicProcedure.action(async () => {
   const session = await getSecureSession();
@@ -15,6 +16,39 @@ export const nonce = publicProcedure.action(async () => {
 
   return { nonce: session.nonce };
 });
+
+export const verify = publicProcedure
+  .input(
+    z.object({
+      message: z.string(),
+      signature: z.string()
+    })
+  )
+  .action(async ({ ctx, input: { message, signature } }) => {
+    const session = await getSecureSession();
+
+    const siweMessage = new SiweMessage(JSON.parse(message));
+    const { data: fields } = await siweMessage.verify({ signature });
+
+    if (fields.nonce !== session.nonce) {
+      throw new ActionError({ message: "Invalid nonce", code: 400 });
+    }
+
+    session.walletAddress = fields.address;
+    session.chainId = fields.chainId;
+
+    await session.save();
+
+    const userWithWallet = await ctx.db.query.users.findFirst({
+      where: (t, { and, eq }) => and(eq(t.walletAddress, session.walletAddress), eq(t.chainId, session.chainId))
+    });
+
+    if (!userWithWallet) {
+      return { type: "signup" } as const;
+    }
+
+    return { type: "signin" } as const;
+  });
 
 export const register = publicProcedure
   .input(
@@ -65,32 +99,14 @@ export const register = publicProcedure
   });
 
 export const login = publicProcedure
-  .input(
-    z.object({
-      message: z.string(),
-      signature: z.string()
-    })
-  )
-  .action(async ({ ctx, input: { message, signature } }) => {
+  .action(async ({ ctx }) => {
     const session = await getSecureSession();
 
-    const siweMessage = new SiweMessage(JSON.parse(message));
-    const { data: fields } = await siweMessage.verify({ signature });
-
-    if (fields.nonce !== session.nonce) {
-      throw new ActionError({ message: "Invalid nonce", code: 400 });
-    }
-
     const userWithWallet = await ctx.db.query.users.findFirst({
-      where: (t, { and, eq }) => and(eq(t.walletAddress, fields.address), eq(t.chainId, fields.chainId))
+      where: (t, { and, eq }) => and(eq(t.walletAddress, session.walletAddress), eq(t.chainId, session.chainId))
     });
 
     if (!userWithWallet) {
-      session.walletAddress = fields.address;
-      session.chainId = fields.chainId;
-
-      await session.save();
-
       return { new: true };
     }
 
@@ -102,4 +118,6 @@ export const login = publicProcedure
 
 export const logout = publicProcedure.action(async () => {
   deleteSession();
+
+  redirect("/");
 });

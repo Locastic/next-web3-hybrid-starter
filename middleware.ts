@@ -12,6 +12,7 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
 
   if (isProtectedRoute && !sessionCookie) {
+    console.error(`Cannot access protected route: ${pathname}, redirecting ..`);
     return NextResponse.redirect(new URL('/', request.url));
   }
 

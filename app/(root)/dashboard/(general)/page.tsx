@@ -2,12 +2,11 @@
 
 import { useRouter } from "next/navigation";
 
+import { updateMe } from "@/lib/actions/user";
+import { useUser, useFormActionState } from "@/lib/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useUser } from "../../_components/auth-provider";
-import { updateMe } from "@/lib/actions/user";
-import { useFormActionState } from "@/lib/hooks";
 
 const DashboardGeneralPage = () => {
   const router = useRouter();

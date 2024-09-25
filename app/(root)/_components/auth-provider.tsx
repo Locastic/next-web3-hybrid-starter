@@ -1,27 +1,11 @@
 'use client';
 
-import { createContext, use, useContext, useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import type { User } from "@/lib/db/schema";
+import { UserContext } from "@/lib/contexts";
 
 type UserPromise = Promise<{ data: User | null | undefined, error?: never } | { data?: never, error: string }>;
-
-type UserContextType = {
-  user: User | null | undefined,
-  setUser: (user: User | null | undefined) => void,
-};
-
-const UserContext = createContext<UserContextType | null>(null);
-
-export const useUser = (): UserContextType => {
-  const context = useContext(UserContext);
-
-  if (context === null) {
-    throw new Error("useUser must be used within a UserProvider");
-  }
-
-  return context;
-};
 
 const AuthProvider = ({ children, userPromise }: { children: React.ReactNode, userPromise: UserPromise }) => {
   const { data: initialUser, error } = use(userPromise);

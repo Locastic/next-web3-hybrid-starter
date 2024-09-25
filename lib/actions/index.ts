@@ -25,6 +25,7 @@ type Procedure<C> = () => {
   action: <U>(fn: (args: { ctx: C }) => Promise<U>) => () => Promise<ActionResult<U>>
 };
 
+// TODO: add error cause logic
 export class ActionError extends Error {
   public readonly code;
   public readonly cause?: unknown;
@@ -87,7 +88,7 @@ const createPublicProcedure: Procedure<PublicContext> = function () {
               return { error: error.message };
             }
 
-            return { error: "Internal server error" };
+            return { error: (error as Error).message };
           }
         }
       }
@@ -106,7 +107,7 @@ const createPublicProcedure: Procedure<PublicContext> = function () {
             return { error: error.message };
           }
 
-          return { error: "Internal server error" };
+          return { error: (error as Error).message };
         }
       }
     },
@@ -140,7 +141,7 @@ const createProtectedProcedure: Procedure<ProtectedContext> = function () {
               return { error: error.message };
             }
 
-            return { error: "Internal server error" };
+            return { error: (error as Error).message };
           }
         };
       }
@@ -163,7 +164,7 @@ const createProtectedProcedure: Procedure<ProtectedContext> = function () {
             return { error: error.message };
           }
 
-          return { error: "Internal server error" };
+          return { error: (error as Error).message };
         }
       }
     },

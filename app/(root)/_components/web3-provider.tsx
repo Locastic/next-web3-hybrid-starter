@@ -1,22 +1,23 @@
 'use client';
 
-import { useState } from "react";
-import { RainbowKitAuthenticationProvider, RainbowKitProvider as NextRainbowKitProvider, createAuthenticationAdapter } from "@rainbow-me/rainbowkit";
+import { useEffect, useState } from "react";
+import { RainbowKitAuthenticationProvider, RainbowKitProvider, createAuthenticationAdapter } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
 import { SiweMessage } from "siwe";
 
 import config from "@/lib/web3/config";
-import { nonce, login, logout } from "@/lib/actions/auth";
-import { useUser } from "./auth-provider";
-import { useRouter } from "next/navigation";
+import { nonce, login, logout, verify } from "@/lib/actions/auth";
+import { useUser } from "@/lib/hooks";
 
 const Web3Provider = ({ children }: { children: React.ReactNode }) => {
-  const router = useRouter();
-  const [queryClient] = useState(() => new QueryClient());
   const { user, setUser } = useUser();
+  const [authType, setAuthType] = useState<"none" | "signup" | "signin">("none");
 
-  const adapter = createAuthenticationAdapter({
+  const status = user !== undefined ? "authenticated" : "unauthenticated";
+
+  const [queryClient] = useState(() => new QueryClient());
+  const [adapter] = useState(() => createAuthenticationAdapter({
     getNonce: async () => {
       const { data, error } = await nonce();
 
@@ -43,41 +44,51 @@ const Web3Provider = ({ children }: { children: React.ReactNode }) => {
     },
     verify: async ({ message, signature }) => {
       // TODO: fix issue with redirects blocking return
-      const { data, error } = await login({
+      const { data, error } = await verify({
         message: JSON.stringify(message),
         signature,
       });
 
       if (error) {
+        console.error(error);
         return false;
       }
 
       // TODO: make xoring data and error work
-      if (data!.new) {
-        setUser(null);
-        return true;
-      }
+      setAuthType(data!.type || "node");
 
       return true;
     },
     signOut: async () => {
       await logout();
 
-      setUser(undefined);
-
-      router.refresh();
+      setAuthType("none");
     },
-  });
+  }));
 
-  const status = user !== undefined ? "authenticated" : "unauthenticated";
+  useEffect(() => {
+    switch (authType) {
+      case "none":
+        setUser(undefined);
+        break;
+      case "signup":
+        setUser(null);
+        break;
+      case "signin":
+        login();
+        break;
+      default:
+        break;
+    }
+  }, [authType]);
 
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitAuthenticationProvider status={status} adapter={adapter}>
-          <NextRainbowKitProvider modalSize="compact">
+          <RainbowKitProvider modalSize="compact">
             {children}
-          </NextRainbowKitProvider>
+          </RainbowKitProvider>
         </RainbowKitAuthenticationProvider>
       </QueryClientProvider>
     </WagmiProvider>
