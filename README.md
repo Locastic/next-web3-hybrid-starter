@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Next.js Web3 Hybrid Starter (WIP)
+
+This is a starter for building a web3 app with hybrid authentication using RainbowKit, Supabase for off-chain storage, and the new Next.js 15 / React 19 for server actions.
+
+**Demo**: https://next-web3-hybrid-starter.vercel.app/
+
+## Features
+
+- Web3 RainbowKit authentication with JWTs stored to cookies
+- Global middleware to protected protected routes
+- Server actions API with public/protected middlewares and Zod schema validation
+- Login/Register/Logout/Delete flows
+
+## Teck Stack
+
+- **Framework**: [Next.js](https://nextjs.org/)
+- **Database**: PostgreSQL ([Supabase](https://supabase.com/]))
+- **ORM**: [Drizzle](https://orm.drizzle.team/)
+- **UI Library**: [shadcn/ui](https://ui.shadcn.com/)
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm dlx create-next-app@latest --example "https://github.com/Locastic/next-web3-hybrid-starter"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Running Locally
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+copy `.env.example` to `.env` and fill the values.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Then run the database migrations:
 
-## Learn More
+```bash
+pnpm db:migrate
+```
 
-To learn more about Next.js, take a look at the following resources:
+Finally, run the app:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## TODO:
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [ ] Implement simple Web3 Info UI (Balance, NFT count, ..)
+- [ ] Implement basic Mint/Burn NFT flow
+- [ ] Activity log
+- [ ] Use Supabase auth api to manage users (`auth.users`) instead of using our own users (`public.users`) table
+- [ ] Implement custom RLS middleware for Supabase (if DrizzleORM RLS support is not dropped yet)
