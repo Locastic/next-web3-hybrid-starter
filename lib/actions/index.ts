@@ -1,9 +1,7 @@
-import { cookies } from "next/headers";
 import { unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
-import { sessionCookieName } from "@/lib/constants";
-import { type SessionData, verifyToken } from "@/lib/auth/session";
+import { getSession, type SessionData } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 
 type PublicContext = {
@@ -39,29 +37,6 @@ export class ActionError extends Error {
 
     Object.setPrototypeOf(this, new.target.prototype);
   }
-}
-
-async function getSession() {
-  const sessionCookie = cookies().get(sessionCookieName);
-
-  if (!sessionCookie || !sessionCookie.value) {
-    console.error("No session");
-    return null;
-  }
-
-  const sessionData = await verifyToken(sessionCookie.value);
-
-  if (!sessionData || !sessionData.user || typeof sessionData.user.id !== "number") {
-    console.error("Invalid session");
-    return null;
-  }
-
-  if (new Date(sessionData.expires) < new Date()) {
-    console.error("Session expired");
-    return null;
-  }
-
-  return sessionData;
 }
 
 const createPublicProcedure: Procedure<PublicContext> = function () {

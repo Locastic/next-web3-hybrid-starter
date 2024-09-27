@@ -8,6 +8,10 @@ import { ActionError, publicProcedure } from "@/lib/actions";
 import { deleteSession, getSecureSession, setSession } from "@/lib/auth/session";
 import { users } from "@/lib/db/schema";
 
+// function wait(ms: number) {
+//   return new Promise((resolve) => setTimeout(resolve, ms));
+// }
+
 export const nonce = publicProcedure.action(async () => {
   const session = await getSecureSession();
   session.nonce = generateNonce();
@@ -41,6 +45,8 @@ export const verify = publicProcedure
     const userWithWallet = await ctx.db.query.users.findFirst({
       where: (t, { and, eq }) => and(eq(t.walletAddress, session.walletAddress), eq(t.chainId, session.chainId))
     });
+
+    // await wait(4000);
 
     if (!userWithWallet) {
       return { type: "signup" } as const;
@@ -104,6 +110,8 @@ export const login = publicProcedure
     const userWithWallet = await ctx.db.query.users.findFirst({
       where: (t, { and, eq }) => and(eq(t.walletAddress, session.walletAddress), eq(t.chainId, session.chainId))
     });
+
+    // await wait(2000);
 
     if (!userWithWallet) {
       return { new: true };

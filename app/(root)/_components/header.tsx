@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { GlobeIcon, Home, LogOut } from "lucide-react";
-import { useAccount, useConnections, useDisconnect } from "wagmi";
-import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { useDisconnect } from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import "@rainbow-me/rainbowkit/styles.css";
 
 import { cn, getChainName, shortenAddress } from "@/lib/utils";
-import { useUser, useFormActionState } from "@/lib/hooks";
+import { useSession, useFormActionState } from "@/lib/hooks";
 import { register } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -111,17 +111,15 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
 
-  const { openConnectModal } = useConnectModal();
   const { disconnect } = useDisconnect();
-  const { status } = useAccount();
 
-  const { user, setUser } = useUser();
+  const { data: session, setData: setSession } = useSession();
 
   useEffect(() => {
-    if (user === null) {
+    if (session === null) {
       setIsRegistrationModalOpen(true);
     }
-  }, [user]);
+  }, [session]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -151,15 +149,15 @@ const Header = () => {
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6"></nav>
         <div className="ml-4">
-          {user ? (
+          {session ? (
             <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <DropdownMenuTrigger>
-                <ProfileImage chain={getChainName(user.chainId)} address={user.walletAddress} />
+                <ProfileImage chain={getChainName(session.user.chainId)} address={session.user.walletAddress} />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <div className="p-2">
-                  <h4 className="text-sm font-bold">Hello, {user.username}!</h4>
-                  <small className="text-xs">{getChainName(user.chainId)}:{shortenAddress(user.walletAddress)}</small>
+                  <h4 className="text-sm font-bold">Hello, {session.user.username}!</h4>
+                  <small className="text-xs">{getChainName(session.user.chainId)}:{shortenAddress(session.user.walletAddress)}</small>
                 </div>
                 <DropdownMenuItem className="w-full cursor-pointer" asChild>
                   <Link href="/dashboard" className="flex w-full items-center">
@@ -174,12 +172,22 @@ const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button variant="outline" onClick={openConnectModal} disabled={status === "connected"}>
-              Connect Wallet
-            </Button>
+            <ConnectButton.Custom>
+              {({
+                openConnectModal,
+                authenticationStatus,
+                account,
+              }) => {
+                return (
+                  <Button variant="outline" onClick={openConnectModal} disabled={!!account || authenticationStatus === "loading"}>
+                    {!!account || authenticationStatus === "loading" ? "Loading.." : "Connect Wallet"}
+                  </Button>
+                );
+              }}
+            </ConnectButton.Custom>
           )}
         </div>
-        <RegistrationModal open={isRegistrationModalOpen} setOpen={setIsRegistrationModalOpen} onClose={() => setUser(undefined)} />
+        <RegistrationModal open={isRegistrationModalOpen} setOpen={setIsRegistrationModalOpen} onClose={() => setSession(undefined)} />
       </div>
     </header>
   );

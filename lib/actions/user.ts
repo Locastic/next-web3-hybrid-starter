@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 
 import { users } from "@/lib/db/schema";
 import { ActionError, protectedProcedure } from "@/lib/actions";
+import { setSession } from "@/lib/auth/session";
 
 export const getMe = protectedProcedure.action(async ({ ctx }) => {
   const user = await ctx.db.query.users.findFirst({
@@ -28,6 +29,8 @@ export const updateMe = protectedProcedure.input(z.object({ username: z.string()
   if (!user || user.username !== username) {
     throw new ActionError({ message: "User not updated!", code: 400 });
   }
+
+  setSession(user);
 
   return true;
 });

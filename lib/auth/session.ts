@@ -57,6 +57,45 @@ export function getSecureSession() {
   });
 };
 
+export async function getSession() {
+  const sessionCookie = cookies().get(sessionCookieName);
+
+  if (!sessionCookie || !sessionCookie.value) {
+    console.error("No session");
+    return null;
+  }
+
+  const sessionData = await verifyToken(sessionCookie.value);
+
+  if (!sessionData || !sessionData.user || typeof sessionData.user.id !== "number") {
+    console.error("Invalid session");
+    return null;
+  }
+
+  if (new Date(sessionData.expires) < new Date()) {
+    console.error("Session expired");
+    return null;
+  }
+
+  return sessionData;
+}
+
+export async function _getSession() {
+  const sessionCookie = cookies().get(sessionCookieName)?.value;
+
+  if (!sessionCookie) {
+    return undefined;
+  }
+
+  try {
+    const parsed = await verifyToken(sessionCookie);
+
+    return parsed;
+  } catch (error) {
+    return undefined;
+  }
+}
+
 export async function setSession(user: NewUser) {
   const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const session: SessionData = {

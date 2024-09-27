@@ -1,9 +1,8 @@
+import { SessionProvider } from "@/lib/contexts";
+import { getSession } from "@/lib/auth/session";
 import Header from "./_components/header";
 import Footer from "./_components/footer";
 import Web3Provider from "./_components/web3-provider";
-import AuthProvider from "./_components/auth-provider";
-
-import { getMe as userGetMe } from "@/lib/actions/user";
 
 export default function RootLayout({
   children,
@@ -11,7 +10,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <AuthProvider userPromise={userGetMe()}>
+    <SessionProvider sessionPromise={getSession()}>
       <Web3Provider>
         <div className="flex flex-col min-h-[100dvh]">
           <Header />
@@ -21,6 +20,6 @@ export default function RootLayout({
           <Footer />
         </div>
       </Web3Provider>
-    </AuthProvider>
+    </SessionProvider>
   );
 }

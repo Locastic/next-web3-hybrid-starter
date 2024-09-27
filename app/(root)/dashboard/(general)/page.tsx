@@ -3,14 +3,14 @@
 import { useRouter } from "next/navigation";
 
 import { updateMe } from "@/lib/actions/user";
-import { useUser, useFormActionState } from "@/lib/hooks";
+import { useFormActionState, useSession } from "@/lib/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const DashboardGeneralPage = () => {
   const router = useRouter();
-  const { user } = useUser();
+  const { data: session } = useSession();
 
   const [state, formAction, isPending] = useFormActionState(updateMe, () => { router.refresh() });
 
@@ -21,7 +21,7 @@ const DashboardGeneralPage = () => {
         <h3 className="font-semibold mb-4">User Info</h3>
         <form className="flex flex-col gap-2 items-start" action={formAction}>
           <Label htmlFor="username">Username</Label>
-          <Input id="username" name="username" defaultValue={user?.username || ''} className="w-full" required />
+          <Input id="username" name="username" defaultValue={session?.user.username || ''} className="w-full" required />
           <Button type="submit" className="mt-2" disabled={isPending}>Save</Button>
           {state.error && <small className="text-destructive">{state.error}</small>}
         </form>
