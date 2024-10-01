@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { RainbowKitAuthenticationProvider, RainbowKitProvider, createAuthenticationAdapter } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useAccount, WagmiProvider } from "wagmi";
+import { useAccount, useAccountEffect, useDisconnect, WagmiProvider } from "wagmi";
 import { SiweMessage } from "siwe";
 
 import config from "@/lib/web3/config";
@@ -14,8 +14,10 @@ import { useSession } from "@/lib/hooks";
 const RainbowKitProviderWrapper = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const wagmiStatusRef = useRef("");
+  const { disconnect } = useDisconnect();
   const { status: wagmiStatus } = useAccount();
   const {
+    data: session,
     setData: setSession,
     status: authStatus,
     setStatus: setAuthStatus
@@ -90,6 +92,15 @@ const RainbowKitProviderWrapper = ({ children }: { children: React.ReactNode }) 
       router.refresh();
     },
   }));
+
+  useAccountEffect({
+    onConnect: (status) => {
+      console.log(status.isReconnected);
+      if (status.isReconnected && session === undefined) {
+        disconnect();
+      }
+    }
+  });
 
   return (
     <RainbowKitAuthenticationProvider status={authStatus} adapter={adapter}>
