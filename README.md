@@ -14,7 +14,7 @@ This is a starter for building a web3 app with hybrid authentication using Rainb
 ## Teck Stack
 
 - **Framework**: [Next.js](https://nextjs.org/)
-- **Database**: PostgreSQL ([Supabase](https://supabase.com/]))
+- **Database**: PostgreSQL ([Supabase](https://supabase.com/))
 - **ORM**: [Drizzle](https://orm.drizzle.team/)
 - **UI Library**: [shadcn/ui](https://ui.shadcn.com/)
 
@@ -42,6 +42,8 @@ pnpm dev
 
 ## TODO:
 
+- [ ] Fix flow:
+  - [ ] session cookie expiration, how can we automatically logout web3 session?
 - [ ] Implement simple Web3 Info UI (Balance, NFT count, ..)
 - [ ] Implement basic Mint/Burn NFT flow
 - [ ] Activity log
