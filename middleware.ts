@@ -29,7 +29,7 @@ export async function middleware(request: NextRequest) {
           expires: sessionExpiresIn.toISOString(),
         }),
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV !== "development",
         sameSite: 'lax',
         expires: sessionExpiresIn,
       });
