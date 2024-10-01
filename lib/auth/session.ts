@@ -9,7 +9,11 @@ if (!process.env.AUTH_SECRET) {
   throw new Error("AUTH_SECRET is not set");
 }
 
-const minute = 60;
+const second = 1000;
+const minute = 60 * second;
+const hour = 60 * minute;
+const day = 24 * hour;
+export const sessionExpiresIn = new Date(Date.now() + day);
 
 const key = new TextEncoder().encode(process.env.AUTH_SECRET);
 
@@ -48,7 +52,7 @@ export function getSecureSession() {
   return getIronSession<SecureSession>(cookies(), {
     cookieName: secureCookieName,
     password: process.env.AUTH_SECRET!,
-    ttl: 5 * minute,
+    ttl: 5 * 60,
     cookieOptions: {
       httpOnly: true,
       secure: process.env.NODE_ENV !== "development",
@@ -80,24 +84,7 @@ export async function getSession() {
   return sessionData;
 }
 
-export async function _getSession() {
-  const sessionCookie = cookies().get(sessionCookieName)?.value;
-
-  if (!sessionCookie) {
-    return undefined;
-  }
-
-  try {
-    const parsed = await verifyToken(sessionCookie);
-
-    return parsed;
-  } catch (error) {
-    return undefined;
-  }
-}
-
 export async function setSession(user: NewUser) {
-  const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const session: SessionData = {
     user: {
       id: user.id!,
@@ -105,14 +92,14 @@ export async function setSession(user: NewUser) {
       walletAddress: user.walletAddress,
       chainId: user.chainId,
     },
-    expires: expiresInOneDay.toISOString(),
+    expires: sessionExpiresIn.toISOString(),
   };
   const encryptedSession = await signToken(session);
   cookies().set(sessionCookieName, encryptedSession, {
-    expires: expiresInOneDay,
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV !== "development",
     sameSite: 'lax',
+    expires: sessionExpiresIn,
   });
 }
 

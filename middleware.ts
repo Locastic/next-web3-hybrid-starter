@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 import { sessionCookieName } from '@/lib/constants';
-import { verifyToken, signToken } from '@/lib/auth/session';
+import { verifyToken, signToken, sessionExpiresIn } from '@/lib/auth/session';
 
 const protectedRoutes = ['/dashboard'];
 
@@ -21,18 +21,17 @@ export async function middleware(request: NextRequest) {
   if (sessionCookie) {
     try {
       const parsed = await verifyToken(sessionCookie.value);
-      const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
       res.cookies.set({
         name: sessionCookieName,
         value: await signToken({
           ...parsed,
-          expires: expiresInOneDay.toISOString(),
+          expires: sessionExpiresIn.toISOString(),
         }),
         httpOnly: true,
         secure: true,
         sameSite: 'lax',
-        expires: expiresInOneDay,
+        expires: sessionExpiresIn,
       });
     } catch (error) {
       console.error('Error updating session:', error);
