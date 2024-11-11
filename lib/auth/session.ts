@@ -48,8 +48,10 @@ export async function verifyToken(input: string) {
   return payload as SessionData;
 }
 
-export function getSecureSession() {
-  return getIronSession<SecureSession>(cookies(), {
+export async function getSecureSession() {
+  const cookieStore = await cookies();
+
+  return getIronSession<SecureSession>(cookieStore, {
     cookieName: secureCookieName,
     password: process.env.AUTH_SECRET!,
     ttl: 5 * 60,
@@ -62,7 +64,9 @@ export function getSecureSession() {
 };
 
 export async function getSession() {
-  const sessionCookie = cookies().get(sessionCookieName);
+  const cookieStore = await cookies();
+
+  const sessionCookie = cookieStore.get(sessionCookieName);
 
   if (!sessionCookie || !sessionCookie.value) {
     console.error("No session");
@@ -85,6 +89,8 @@ export async function getSession() {
 }
 
 export async function setSession(user: NewUser) {
+  const cookieStore = await cookies();
+
   const session: SessionData = {
     user: {
       id: user.id!,
@@ -94,8 +100,10 @@ export async function setSession(user: NewUser) {
     },
     expires: sessionExpiresIn.toISOString(),
   };
+
   const encryptedSession = await signToken(session);
-  cookies().set(sessionCookieName, encryptedSession, {
+
+  cookieStore.set(sessionCookieName, encryptedSession, {
     httpOnly: true,
     secure: process.env.NODE_ENV !== "development",
     sameSite: 'lax',
@@ -103,6 +111,8 @@ export async function setSession(user: NewUser) {
   });
 }
 
-export function deleteSession() {
-  cookies().delete(sessionCookieName);
+export async function deleteSession() {
+  const cookieStore = await cookies();
+
+  cookieStore.delete(sessionCookieName);
 }

@@ -124,5 +124,5 @@ export const login = publicProcedure
   });
 
 export const logout = publicProcedure.action(async () => {
-  deleteSession();
+  await deleteSession();
 });
