@@ -16,7 +16,7 @@ type ProtectedContext = {
 
 type ActionResult<R> = { data: R, error?: never } | { data?: never, error: string };
 
-type Procedure<C> = () => {
+type Procedure<C> = {
   input: <T extends z.ZodRawShape>(schema: z.ZodObject<T>) => {
     action: <U>(fn: (args: { ctx: C, input: z.infer<typeof schema> }) => Promise<U>) => (input: z.infer<typeof schema>) => Promise<ActionResult<U>>
   };
@@ -39,41 +39,21 @@ export class ActionError extends Error {
   }
 }
 
-const createPublicProcedure: Procedure<PublicContext> = function () {
-  return {
-    input: (schema) => ({
-      action: (fn) => {
-        return async (input) => {
-          const session = await getSession();
-
-          const result = schema.safeParse(input);
-
-          try {
-            if (!result.success) {
-              throw new ActionError({ message: result.error.errors[0].message, code: 400 });
-            }
-
-            const res = await fn({ ctx: { db, session }, input });
-
-            return { data: res };
-          } catch (error) {
-            unstable_rethrow(error);
-            if (error instanceof ActionError) {
-              console.error(error);
-              return { error: error.message };
-            }
-
-            return { error: (error as Error).message };
-          }
-        }
-      }
-    }),
+const publicProcedure: Procedure<PublicContext> = {
+  input: (schema) => ({
     action: (fn) => {
-      return async () => {
+      return async (input) => {
         const session = await getSession();
 
+        const result = schema.safeParse(input);
+
         try {
-          const res = await fn({ ctx: { db, session } });
+          if (!result.success) {
+            throw new ActionError({ message: result.error.errors[0].message, code: 400 });
+          }
+
+          const res = await fn({ ctx: { db, session }, input });
+
           return { data: res };
         } catch (error) {
           unstable_rethrow(error);
@@ -85,45 +65,32 @@ const createPublicProcedure: Procedure<PublicContext> = function () {
           return { error: (error as Error).message };
         }
       }
-    },
-  }
-}
+    }
+  }),
+  action: (fn) => {
+    return async () => {
+      const session = await getSession();
 
-const createProtectedProcedure: Procedure<ProtectedContext> = function () {
-  return {
-    input: (schema) => ({
-      action: (fn) => {
-        return async (input) => {
-          const session = await getSession();
+      try {
+        const res = await fn({ ctx: { db, session } });
+        return { data: res };
+      } catch (error) {
+        unstable_rethrow(error);
+        if (error instanceof ActionError) {
+          console.error(error);
+          return { error: error.message };
+        }
 
-          try {
-            if (!session) {
-              throw new ActionError({ message: "No session", code: 400 });
-            }
-
-            const result = schema.safeParse(input);
-
-            if (!result.success) {
-              throw new ActionError({ message: result.error.errors[0].message, code: 400 });
-            }
-
-            const res = await fn({ ctx: { db, session }, input });
-
-            return { data: res };
-          } catch (error) {
-            unstable_rethrow(error);
-            if (error instanceof ActionError) {
-              console.error(error);
-              return { error: error.message };
-            }
-
-            return { error: (error as Error).message };
-          }
-        };
+        return { error: (error as Error).message };
       }
-    }),
+    }
+  },
+};
+
+const protectedProcedure: Procedure<ProtectedContext> = {
+  input: (schema) => ({
     action: (fn) => {
-      return async () => {
+      return async (input) => {
         const session = await getSession();
 
         try {
@@ -131,7 +98,13 @@ const createProtectedProcedure: Procedure<ProtectedContext> = function () {
             throw new ActionError({ message: "No session", code: 400 });
           }
 
-          const res = await fn({ ctx: { db, session } });
+          const result = schema.safeParse(input);
+
+          if (!result.success) {
+            throw new ActionError({ message: result.error.errors[0].message, code: 400 });
+          }
+
+          const res = await fn({ ctx: { db, session }, input });
 
           return { data: res };
         } catch (error) {
@@ -143,12 +116,32 @@ const createProtectedProcedure: Procedure<ProtectedContext> = function () {
 
           return { error: (error as Error).message };
         }
-      }
-    },
-  };
-}
+      };
+    }
+  }),
+  action: (fn) => {
+    return async () => {
+      const session = await getSession();
 
-const publicProcedure = createPublicProcedure();
-const protectedProcedure = createProtectedProcedure();
+      try {
+        if (!session) {
+          throw new ActionError({ message: "No session", code: 400 });
+        }
+
+        const res = await fn({ ctx: { db, session } });
+
+        return { data: res };
+      } catch (error) {
+        unstable_rethrow(error);
+        if (error instanceof ActionError) {
+          console.error(error);
+          return { error: error.message };
+        }
+
+        return { error: (error as Error).message };
+      }
+    }
+  },
+}
 
 export { publicProcedure, protectedProcedure };
