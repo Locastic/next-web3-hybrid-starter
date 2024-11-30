@@ -1,12 +1,13 @@
 'use server';
 
 import { z } from "zod";
-import { generateNonce, SiweMessage } from "siwe";
+import { generateSiweNonce, parseSiweMessage, SiweMessage } from "viem/siwe";
 import { redirect } from "next/navigation";
 
 import { ActionError, publicProcedure } from "@/lib/actions";
 import { deleteSession, getSecureSession, setSession } from "@/lib/auth/session";
 import { users } from "@/lib/db/schema";
+import { publicClient } from "@/lib/web3/server";
 
 // function wait(ms: number) {
 //   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -14,7 +15,7 @@ import { users } from "@/lib/db/schema";
 
 export const nonce = publicProcedure.action(async () => {
   const session = await getSecureSession();
-  session.nonce = generateNonce();
+  session.nonce = generateSiweNonce();
   await session.save();
 
   return { nonce: session.nonce };
@@ -30,15 +31,24 @@ export const verify = publicProcedure
   .action(async ({ ctx, input: { message, signature } }) => {
     const session = await getSecureSession();
 
-    const siweMessage = new SiweMessage(JSON.parse(message));
-    const { data: fields } = await siweMessage.verify({ signature });
+    const siweMessage = parseSiweMessage(message) as SiweMessage;
+    const success = await publicClient.verifyMessage({
+      address: siweMessage.address,
+      message,
+      signature: signature as `0x${string}`
+    });
 
-    if (fields.nonce !== session.nonce) {
+    if (!success) {
+      throw new ActionError({ message: "Invalid signature", code: 400 })
+    }
+
+
+    if (siweMessage.nonce !== session.nonce) {
       throw new ActionError({ message: "Invalid nonce", code: 400 });
     }
 
-    session.walletAddress = fields.address;
-    session.chainId = fields.chainId;
+    session.walletAddress = siweMessage.address;
+    session.chainId = siweMessage.chainId;
 
     await session.save();
 

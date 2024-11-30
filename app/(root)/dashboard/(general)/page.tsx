@@ -1,7 +1,5 @@
 'use client';
 
-import { useRouter } from "next/navigation";
-
 import { updateMe } from "@/lib/actions/user";
 import { useFormActionState, useSession } from "@/lib/hooks";
 import { Button } from "@/components/ui/button";
@@ -9,10 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const DashboardGeneralPage = () => {
-  const router = useRouter();
   const { data: session } = useSession();
 
-  const [state, formAction, isPending] = useFormActionState(updateMe, () => { router.refresh() });
+  const [state, formAction, isPending] = useFormActionState(updateMe);
 
   return (
     <>

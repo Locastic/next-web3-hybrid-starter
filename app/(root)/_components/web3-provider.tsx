@@ -5,9 +5,9 @@ import { useRef, useState } from "react";
 import { RainbowKitAuthenticationProvider, RainbowKitProvider, createAuthenticationAdapter } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAccount, useAccountEffect, useDisconnect, WagmiProvider } from "wagmi";
-import { SiweMessage } from "siwe";
+import { createSiweMessage } from "viem/siwe";
 
-import config from "@/lib/web3/config";
+import { config } from "@/lib/web3/client";
 import { nonce, login, logout, verify } from "@/lib/actions/auth";
 import { useSession } from "@/lib/hooks";
 
@@ -43,8 +43,8 @@ const RainbowKitProviderWrapper = ({ children }: { children: React.ReactNode }) 
       // TODO: make xoring data and error work
       return data!.nonce;
     },
-    createMessage: ({ nonce, address, chainId }) => {
-      return new SiweMessage({
+    createMessage: ({ nonce, address, chainId }) =>
+      createSiweMessage({
         domain: window.location.host,
         address,
         chainId,
@@ -52,14 +52,10 @@ const RainbowKitProviderWrapper = ({ children }: { children: React.ReactNode }) 
         uri: window.location.origin,
         version: "1",
         nonce,
-      });
-    },
-    getMessageBody: ({ message }) => {
-      return message.prepareMessage();
-    },
+      }),
     verify: async ({ message, signature }) => {
       const { data, error } = await verify({
-        message: JSON.stringify(message),
+        message,
         signature,
       });
 
