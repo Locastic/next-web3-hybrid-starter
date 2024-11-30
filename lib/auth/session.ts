@@ -69,19 +69,19 @@ export async function getSession() {
   const sessionCookie = cookieStore.get(sessionCookieName);
 
   if (!sessionCookie || !sessionCookie.value) {
-    console.error("No session");
+    // console.error("No session");
     return null;
   }
 
   const sessionData = await verifyToken(sessionCookie.value);
 
   if (!sessionData || !sessionData.user || typeof sessionData.user.id !== "number") {
-    console.error("Invalid session");
+    // console.error("Invalid session");
     return null;
   }
 
   if (new Date(sessionData.expires) < new Date()) {
-    console.error("Session expired");
+    // console.error("Session expired");
     return null;
   }
 

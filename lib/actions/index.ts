@@ -95,6 +95,7 @@ const createProtectedProcedure: Procedure<ProtectedContext> = function () {
       action: (fn) => {
         return async (input) => {
           const session = await getSession();
+
           try {
             if (!session) {
               throw new ActionError({ message: "No session", code: 400 });
@@ -124,6 +125,7 @@ const createProtectedProcedure: Procedure<ProtectedContext> = function () {
     action: (fn) => {
       return async () => {
         const session = await getSession();
+
         try {
           if (!session) {
             throw new ActionError({ message: "No session", code: 400 });

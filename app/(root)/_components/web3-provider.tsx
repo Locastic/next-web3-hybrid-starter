@@ -95,7 +95,6 @@ const RainbowKitProviderWrapper = ({ children }: { children: React.ReactNode }) 
 
   useAccountEffect({
     onConnect: (status) => {
-      console.log(status.isReconnected);
       if (status.isReconnected && session === undefined) {
         disconnect();
       }
