@@ -91,10 +91,12 @@ const RainbowKitProviderWrapper = ({ children }: { children: React.ReactNode }) 
 
   useAccountEffect({
     onConnect: (status) => {
+      // NOTE: not working when reloading while the signature verification is open
+      // might be related to https://github.com/wevm/wagmi/discussions/4301
       if (status.isReconnected && session === undefined) {
         disconnect();
       }
-    }
+    },
   });
 
   return (
