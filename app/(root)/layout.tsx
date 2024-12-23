@@ -1,5 +1,5 @@
 import { SessionProvider } from "@/lib/contexts";
-import { getSession } from "@/lib/auth/session";
+import { getSession } from "@/lib/supabase";
 import Header from "./_components/header";
 import Footer from "./_components/footer";
 import Web3Provider from "./_components/web3-provider";

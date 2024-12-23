@@ -1,11 +1,8 @@
-import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 
-import { client } from "@/lib/db";
+import { migrator as db } from "@/lib/db";
 
 async function runMigrate() {
-  const db = drizzle(client, { logger: true });
-
   console.log("⏳ Running migrations...");
 
   const start = Date.now();

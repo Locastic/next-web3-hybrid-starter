@@ -1,42 +1,48 @@
-'use server';
+"use server";
 
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 
-import { users } from "@/lib/db/schema";
+import { profiles } from "@/lib/db/schema";
 import { ActionError, protectedProcedure } from "@/lib/actions";
-import { setSession } from "@/lib/auth/session";
 
-export const getMe = protectedProcedure.action(async ({ ctx }) => {
-  const user = await ctx.db.query.users.findFirst({
-    where: (t, { eq, and }) =>
-      and(eq(t.walletAddress, ctx.session.user.walletAddress), eq(t.chainId, ctx.session.user.chainId)),
+export const updateMe = protectedProcedure
+  .input(z.object({ username: z.string().min(3) }))
+  .action(async ({ ctx, input: { username } }) => {
+    const profileWithUsername = await ctx.db.query.profiles.findFirst({
+      where: (t, { eq }) => eq(t.username, username),
+    });
+
+    if (profileWithUsername) {
+      throw new ActionError({ message: "Username already exists", code: 400 });
+    }
+
+    const [profile] = await ctx.db
+      .update(profiles)
+      .set({
+        username,
+      })
+      .where(eq(profiles.id, ctx.session.user.id))
+      .returning();
+
+    if (!profile || profile.username !== username) {
+      throw new ActionError({ message: "User not updated!", code: 400 });
+    }
+
+    await ctx.supabase.anon.auth.updateUser({
+      data: {
+        username,
+        display_name: `@${username}`,
+      },
+    });
+
+    await ctx.supabase.anon.auth.refreshSession();
+
+    return true;
   });
 
-  if (!user) {
-    throw new ActionError({ message: "User not found", code: 400 });
-  }
-
-  return user;
-});
-
-export const updateMe = protectedProcedure.input(z.object({ username: z.string().min(3) })).action(async ({ ctx, input: { username } }) => {
-
-  const [user] = await ctx.db.update(users).set({
-    username,
-  }).where(eq(users.id, ctx.session.user.id)).returning();
-
-  if (!user || user.username !== username) {
-    throw new ActionError({ message: "User not updated!", code: 400 });
-  }
-
-  setSession(user);
-
-  return true;
-});
-
 export const deleteMe = protectedProcedure.action(async ({ ctx }) => {
-  await ctx.db.delete(users).where(eq(users.id, ctx.session.user.id));
+  await ctx.supabase.serviceRole.auth.admin.deleteUser(ctx.session.user.id);
 
   return true;
 });

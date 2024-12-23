@@ -1,6 +1,6 @@
 {
-  "id": "5be7d981-0957-4d64-a82d-e6f158bdab55",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "8b000a07-59ef-4d58-89f8-96c9b3b0ffa4",
+  "prevId": "5be7d981-0957-4d64-a82d-e6f158bdab55",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -58,16 +58,16 @@
         "profiles_id_fk": {
           "name": "profiles_id_fk",
           "tableFrom": "profiles",
-          "tableTo": "users",
-          "schemaTo": "auth",
           "columnsFrom": [
             "id"
           ],
+          "tableTo": "users",
+          "schemaTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -99,10 +99,10 @@
   },
   "enums": {},
   "schemas": {},
+  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

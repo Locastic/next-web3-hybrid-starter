@@ -7,4 +7,5 @@ export default {
   dbCredentials: {
     url: process.env.DATABASE_URL!,
   },
+  casing: "snake_case",
 } satisfies Config;
