@@ -11,6 +11,10 @@ export type Db = PostgresJsDatabase<typeof schema>;
 
 dotenv.config();
 
+if (!process.env.DIRECT_URL) {
+  throw new Error("DIRECT_URL environment variable is not set");
+}
+
 if (!process.env.ADMIN_DATABASE_URL) {
   throw new Error("ADMIN_DATABASE_URL environment variable is not set");
 }
@@ -65,7 +69,7 @@ const config = {
 } satisfies DrizzleConfig<typeof schema>;
 
 export const migrator = drizzle({
-  client: postgres(process.env.ADMIN_DATABASE_URL),
+  client: postgres(process.env.DIRECT_URL),
   logger: true,
 });
 
