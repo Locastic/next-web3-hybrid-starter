@@ -1,5 +1,5 @@
 {
-  "id": "5be7d981-0957-4d64-a82d-e6f158bdab55",
+  "id": "dd8fd5ae-4eff-4597-b12b-553b68ac9a0b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -12,7 +12,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "wallet_address": {
           "name": "wallet_address",
@@ -51,22 +52,28 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "temp_id": {
+          "name": "temp_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "profiles_id_fk": {
-          "name": "profiles_id_fk",
+        "profiles_temp_id_fk": {
+          "name": "profiles_temp_id_fk",
           "tableFrom": "profiles",
           "tableTo": "users",
           "schemaTo": "auth",
           "columnsFrom": [
-            "id"
+            "temp_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -89,8 +96,8 @@
           "to": [
             "authenticated"
           ],
-          "using": "(SELECT auth.uid()) = id",
-          "withCheck": "(SELECT auth.uid()) = id"
+          "using": "(SELECT auth.uid()) = temp_id",
+          "withCheck": "(SELECT auth.uid()) = temp_id"
         }
       },
       "checkConstraints": {},

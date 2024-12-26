@@ -30,13 +30,9 @@ export type SupabaseToken = {
     [key: string]: any;
   };
 } & {
-  app_metadata: {
-    provider: "walletconnect";
-    providers: ["walletconnect"];
+  user_metadata: {
     chainId: number;
     walletAddress: `0x${string}`;
-  };
-  user_metadata: {
     username: string;
   };
 };
@@ -150,8 +146,12 @@ export async function getSession() {
         app_metadata: decoded.app_metadata,
         aud: "authenticated",
         created_at: "",
-        id: decoded.sub,
+        // NOTE: decoded.sub here is the id of the temporary user, we don't want that, we want the actual id from `public.profiles`
+        id: decoded.user_metadata.id,
+        temp_id: decoded.sub,
         user_metadata: {
+          chainId: decoded.user_metadata.chainId,
+          walletAddress: decoded.user_metadata.walletAddress,
           username: decoded.user_metadata.username,
         },
       },

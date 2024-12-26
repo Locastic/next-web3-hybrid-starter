@@ -76,6 +76,8 @@ const RegistrationModal = ({
 }) => {
   const [state, formAction, isPending] = useFormActionState(register);
 
+  // TODO: disconnect wallet when manually closing the modal
+
   useEffect(() => {
     if (!state.error) {
       handleOpenChange(false);
@@ -174,8 +176,8 @@ const Header = () => {
             <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <DropdownMenuTrigger>
                 <ProfileImage
-                  chain={getChainName(session.user.app_metadata.chainId)}
-                  address={session.user.app_metadata.walletAddress}
+                  chain={getChainName(session.user.user_metadata.chainId)}
+                  address={session.user.user_metadata.walletAddress}
                 />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -184,8 +186,8 @@ const Header = () => {
                     Hello, {session.user.user_metadata.username}!
                   </h4>
                   <small className="text-xs">
-                    {getChainName(session.user.app_metadata.chainId)}:
-                    {shortenAddress(session.user.app_metadata.walletAddress)}
+                    {getChainName(session.user.user_metadata.chainId)}:
+                    {shortenAddress(session.user.user_metadata.walletAddress)}
                   </small>
                 </div>
                 <DropdownMenuItem className="w-full cursor-pointer" asChild>

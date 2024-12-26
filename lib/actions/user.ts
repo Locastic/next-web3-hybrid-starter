@@ -42,7 +42,13 @@ export const updateMe = protectedProcedure
   });
 
 export const deleteMe = protectedProcedure.action(async ({ ctx }) => {
-  await ctx.supabase.serviceRole.auth.admin.deleteUser(ctx.session.user.id);
+  await ctx.unsafe_db
+    .delete(profiles)
+    .where(eq(profiles.id, ctx.session.user.id));
+
+  await ctx.supabase.serviceRole.auth.admin.deleteUser(
+    ctx.session.user.temp_id,
+  );
 
   return true;
 });

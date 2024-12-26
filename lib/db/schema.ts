@@ -13,20 +13,21 @@ import { authenticatedRole, authUsers } from "drizzle-orm/supabase";
 export const profiles = pgTable(
   "profiles",
   {
-    id: uuid().primaryKey(),
+    id: uuid().primaryKey().defaultRandom(),
     walletAddress: text().notNull(),
     chainId: bigint({ mode: "number" }).notNull(),
     username: text().notNull(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp({ withTimezone: true }),
+    tempId: uuid(),
   },
   (t) => [
     foreignKey({
-      columns: [t.id],
+      columns: [t.tempId],
       foreignColumns: [authUsers.id],
-      name: "profiles_id_fk",
-    }).onDelete("cascade"),
+      name: "profiles_temp_id_fk",
+    }).onDelete("set null"),
     pgPolicy("Enable read access for all users", {
       as: "permissive",
       to: "public",
@@ -37,8 +38,8 @@ export const profiles = pgTable(
       as: "permissive",
       to: authenticatedRole,
       for: "update",
-      using: sql`(SELECT auth.uid()) = id`,
-      withCheck: sql`(SELECT auth.uid()) = id`,
+      using: sql`(SELECT auth.uid()) = temp_id`,
+      withCheck: sql`(SELECT auth.uid()) = temp_id`,
     }),
   ],
 );
