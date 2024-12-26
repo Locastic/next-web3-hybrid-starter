@@ -15,12 +15,14 @@ export type SupabaseClients = {
 };
 
 type PublicContext = {
+  unsafe_db: Db;
   db: Db;
   session: Session | null;
   supabase: SupabaseClients;
 };
 
 type ProtectedContext = {
+  unsafe_db: Db;
   db: Db;
   session: Session;
   supabase: SupabaseClients;
@@ -86,7 +88,10 @@ const publicProcedure: Procedure<PublicContext> = {
           };
 
           const res = await db.rls(async (tx) => {
-            return await fn({ ctx: { db: tx, session, supabase }, input });
+            return await fn({
+              ctx: { db: tx, unsafe_db: db.admin, session, supabase },
+              input,
+            });
           });
 
           return { data: res };
@@ -114,7 +119,9 @@ const publicProcedure: Procedure<PublicContext> = {
         };
 
         const res = await db.rls(async (tx) => {
-          return await fn({ ctx: { db: tx, session, supabase } });
+          return await fn({
+            ctx: { db: tx, unsafe_db: db.admin, session, supabase },
+          });
         });
 
         return { data: res };
@@ -158,7 +165,10 @@ const protectedProcedure: Procedure<ProtectedContext> = {
           };
 
           const res = await db.rls(async (tx) => {
-            return await fn({ ctx: { db: tx, session, supabase }, input });
+            return await fn({
+              ctx: { db: tx, unsafe_db: db.admin, session, supabase },
+              input,
+            });
           });
 
           return { data: res };
@@ -190,7 +200,9 @@ const protectedProcedure: Procedure<ProtectedContext> = {
         };
 
         const res = await db.rls(async (tx) => {
-          return await fn({ ctx: { db: tx, session, supabase } });
+          return await fn({
+            ctx: { db: tx, unsafe_db: db.admin, session, supabase },
+          });
         });
 
         return { data: res };
