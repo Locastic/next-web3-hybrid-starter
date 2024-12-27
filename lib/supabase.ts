@@ -31,6 +31,7 @@ export type SupabaseToken = {
   };
 } & {
   user_metadata: {
+    id: string;
     chainId: number;
     walletAddress: `0x${string}`;
     username: string;
