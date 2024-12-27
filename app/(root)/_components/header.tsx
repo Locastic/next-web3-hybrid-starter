@@ -78,14 +78,17 @@ const RegistrationModal = ({
 
   useEffect(() => {
     if (!state.error) {
-      handleOpenChange(false);
+      setOpen(false);
     }
   }, [state]);
 
   const handleOpenChange = (open: boolean) => {
-    if (!isPending) {
-      setOpen(open);
+    if (isPending) {
+      return;
     }
+
+    setOpen(open);
+
     if (!open) {
       onClose();
     }
@@ -224,7 +227,10 @@ const Header = () => {
         <RegistrationModal
           open={isRegistrationModalOpen}
           setOpen={setIsRegistrationModalOpen}
-          onClose={() => setSession(undefined)}
+          onClose={() => {
+            setSession(undefined);
+            disconnect();
+          }}
         />
       </div>
     </header>
