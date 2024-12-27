@@ -67,62 +67,31 @@ export class ActionError extends Error {
 
 const publicProcedure: Procedure<PublicContext> = {
   input: (schema) => ({
-    action: (fn) => {
-      return async (input) => {
-        const session = await getSession();
-
-        const result = schema.safeParse(input);
-
-        try {
-          if (!result.success) {
-            throw new ActionError({
-              message: result.error.errors[0].message,
-              code: 400,
-            });
-          }
-
-          const db = await createDrizzleSupabaseClient();
-          const supabase = {
-            anon: await createAnonClient(),
-            serviceRole: await createServiceRoleClient(),
-          };
-
-          const res = await db.rls(async (tx) => {
-            return await fn({
-              ctx: { db: tx, unsafe_db: db.admin, session, supabase },
-              input,
-            });
-          });
-
-          return { data: res };
-        } catch (error) {
-          unstable_rethrow(error);
-          if (error instanceof ActionError) {
-            console.error(error);
-            return { error: error.message };
-          }
-
-          return { error: (error as Error).message };
-        }
-      };
-    },
-  }),
-  action: (fn) => {
-    return async () => {
+    action: (fn) => async (input) => {
       const session = await getSession();
 
+      const result = schema.safeParse(input);
+
       try {
+        if (!result.success) {
+          throw new ActionError({
+            message: result.error.errors[0].message,
+            code: 400,
+          });
+        }
+
         const db = await createDrizzleSupabaseClient();
         const supabase = {
           anon: await createAnonClient(),
           serviceRole: await createServiceRoleClient(),
         };
 
-        const res = await db.rls(async (tx) => {
-          return await fn({
+        const res = await db.rls((tx) =>
+          fn({
             ctx: { db: tx, unsafe_db: db.admin, session, supabase },
-          });
-        });
+            input,
+          }),
+        );
 
         return { data: res };
       } catch (error) {
@@ -134,58 +103,40 @@ const publicProcedure: Procedure<PublicContext> = {
 
         return { error: (error as Error).message };
       }
-    };
+    },
+  }),
+  action: (fn) => async () => {
+    const session = await getSession();
+
+    try {
+      const db = await createDrizzleSupabaseClient();
+      const supabase = {
+        anon: await createAnonClient(),
+        serviceRole: await createServiceRoleClient(),
+      };
+
+      const res = await db.rls((tx) =>
+        fn({
+          ctx: { db: tx, unsafe_db: db.admin, session, supabase },
+        }),
+      );
+
+      return { data: res };
+    } catch (error) {
+      unstable_rethrow(error);
+      if (error instanceof ActionError) {
+        console.error(error);
+        return { error: error.message };
+      }
+
+      return { error: (error as Error).message };
+    }
   },
 };
 
 const protectedProcedure: Procedure<ProtectedContext> = {
   input: (schema) => ({
-    action: (fn) => {
-      return async (input) => {
-        const session = await getSession();
-
-        try {
-          if (!session) {
-            throw new ActionError({ message: "No session", code: 400 });
-          }
-
-          const result = schema.safeParse(input);
-
-          if (!result.success) {
-            throw new ActionError({
-              message: result.error.errors[0].message,
-              code: 400,
-            });
-          }
-
-          const db = await createDrizzleSupabaseClient();
-          const supabase = {
-            anon: await createAnonClient(),
-            serviceRole: await createServiceRoleClient(),
-          };
-
-          const res = await db.rls(async (tx) => {
-            return await fn({
-              ctx: { db: tx, unsafe_db: db.admin, session, supabase },
-              input,
-            });
-          });
-
-          return { data: res };
-        } catch (error) {
-          unstable_rethrow(error);
-          if (error instanceof ActionError) {
-            console.error(error);
-            return { error: error.message };
-          }
-
-          return { error: (error as Error).message };
-        }
-      };
-    },
-  }),
-  action: (fn) => {
-    return async () => {
+    action: (fn) => async (input) => {
       const session = await getSession();
 
       try {
@@ -193,17 +144,27 @@ const protectedProcedure: Procedure<ProtectedContext> = {
           throw new ActionError({ message: "No session", code: 400 });
         }
 
+        const result = schema.safeParse(input);
+
+        if (!result.success) {
+          throw new ActionError({
+            message: result.error.errors[0].message,
+            code: 400,
+          });
+        }
+
         const db = await createDrizzleSupabaseClient();
         const supabase = {
           anon: await createAnonClient(),
           serviceRole: await createServiceRoleClient(),
         };
 
-        const res = await db.rls(async (tx) => {
-          return await fn({
+        const res = await db.rls((tx) =>
+          fn({
             ctx: { db: tx, unsafe_db: db.admin, session, supabase },
-          });
-        });
+            input,
+          }),
+        );
 
         return { data: res };
       } catch (error) {
@@ -215,7 +176,38 @@ const protectedProcedure: Procedure<ProtectedContext> = {
 
         return { error: (error as Error).message };
       }
-    };
+    },
+  }),
+  action: (fn) => async () => {
+    const session = await getSession();
+
+    try {
+      if (!session) {
+        throw new ActionError({ message: "No session", code: 400 });
+      }
+
+      const db = await createDrizzleSupabaseClient();
+      const supabase = {
+        anon: await createAnonClient(),
+        serviceRole: await createServiceRoleClient(),
+      };
+
+      const res = await db.rls((tx) =>
+        fn({
+          ctx: { db: tx, unsafe_db: db.admin, session, supabase },
+        }),
+      );
+
+      return { data: res };
+    } catch (error) {
+      unstable_rethrow(error);
+      if (error instanceof ActionError) {
+        console.error(error);
+        return { error: error.message };
+      }
+
+      return { error: (error as Error).message };
+    }
   },
 };
 
